@@ -1,0 +1,115 @@
+version: '3.8'
+
+networks:
+  payworld-network:
+    name: payworld-network
+    driver: bridge
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.6
+    hostname: zookeeper
+    container_name: zookeeper
+    networks: 
+      - payworld-network
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka1:
+    image: confluentinc/cp-kafka:7.6.6
+    hostname: kafka1
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    networks: 
+      - payworld-network
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+
+  kafka2:
+    image: confluentinc/cp-kafka:7.6.6
+    hostname: kafka2
+    depends_on:
+      - zookeeper
+    ports:
+      - "9093:9093"
+    networks: 
+      - payworld-network
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT:///kafka2:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: payworld
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports: 
+      - "5433:5432"
+    networks: 
+      - payworld-network
+
+  ingestor:
+    build:
+      context: ./payworld-ingestor
+      dockerfile: Dockerfile
+    depends_on: [kafka1, kafka2]
+    ports:
+      - "8081:8081"
+    networks: 
+      - payworld-network
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9093
+
+  account-manager:
+    build:
+      context: ./payworld-account-manager
+      dockerfile: Dockerfile
+    depends_on: [postgres]
+    ports:
+      - "8080:8080"
+    networks: 
+      - payworld-network
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payworld
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin
+
+  direction-resolver:
+    build:
+      context: ./payworld-direction-resolver
+      dockerfile: Dockerfile
+    depends_on: [kafka1, kafka2, postgres]
+    networks: 
+      - payworld-network
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9093
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payworld
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin
+      PAYWORLD_ACCOUNT_MANAGER_URL: account-manager:8080
+
+  payment-processor:
+    build:
+      context: ./payworld-payment-processor
+      dockerfile: Dockerfile
+    depends_on: [kafka1, kafka2, postgres]
+    networks: 
+      - payworld-network
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9093
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payworld
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin

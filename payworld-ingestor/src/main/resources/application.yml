@@ -1,0 +1,13 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: payworld-ingestor
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+app:
+  topic:
+    produce: payments.payment.created.v1

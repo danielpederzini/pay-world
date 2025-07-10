@@ -1,0 +1,20 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: payworld-account-manager
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+#      javax:
+#        persistence:
+#          schema-generation.scripts.action: create
+#          schema-generation.scripts.create-target: V1__create.sql
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver

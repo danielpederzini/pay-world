@@ -1,0 +1,32 @@
+server:
+  port: 8082
+spring:
+  application:
+    name: payworld-direction-resolver
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500, expireAfterWrite=5m
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+    consumer:
+      group-id: raw-payments-processor
+      key-deserializer: org.apache.kafka.common.serialization.StringSerializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+feign:
+  client:
+    currency-api:
+      main:
+        url-prefix: https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api
+      fallback:
+        url-prefix: https://latest.currency-api.pages.dev/v1/currencies
+    accounts-api:
+      url-prefix: ${PAYWORLD_ACCOUNT_MANAGER_URL}
+app:
+  topic:
+    consume: payments.payment.created.v1
+    produce: payments.payment.enriched.v1
