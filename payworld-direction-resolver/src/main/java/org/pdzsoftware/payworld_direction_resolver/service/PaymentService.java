@@ -27,22 +27,6 @@ public class PaymentService {
         eventPublisher.publish(enrichedPayment.getUuid(), enrichedPayment);
     }
 
-    private static Payment buildPaymentEntity(EnrichedPaymentDTO enrichedPayment) {
-        return Payment.builder()
-                .uuid(enrichedPayment.getUuid())
-                .senderKey(enrichedPayment.getSenderKey())
-                .receiverKey(enrichedPayment.getReceiverKey())
-                .originalCurrency(enrichedPayment.getOriginalCurrency())
-                .newCurrency(enrichedPayment.getNewCurrency())
-                .originalAmount(enrichedPayment.getOriginalAmount())
-                .convertedAmount(enrichedPayment.getConvertedAmount())
-                .createdAt(enrichedPayment.getCreatedAt())
-                .updatedAt(enrichedPayment.getConvertedAt())
-                .convertedAt(enrichedPayment.getConvertedAt())
-                .status(PaymentStatus.PENDING)
-                .build();
-    }
-
     private EnrichedPaymentDTO getEnrichedPayment(RawPaymentDTO payment) {
         AccountInfoDTO senderInfo = accountClient.getInfoByKey(payment.getSenderKey());
         AccountInfoDTO receiverInfo = accountClient.getInfoByKey(payment.getReceiverKey());
