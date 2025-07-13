@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.pdzsoftware.payworld_payment_processor.dto.EnrichedPaymentDTO;
 import org.pdzsoftware.payworld_payment_processor.entity.Account;
 import org.pdzsoftware.payworld_payment_processor.entity.Transaction;
+import org.pdzsoftware.payworld_payment_processor.exception.AcknowledgeableException;
 import org.pdzsoftware.payworld_payment_processor.repository.AccountRepository;
 import org.pdzsoftware.payworld_payment_processor.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
@@ -28,13 +29,13 @@ public class PaymentProcessor {
         BigDecimal convertedAmount = enrichedPayment.getConvertedAmount();
 
         Account senderAccount = accountRepository.findByKey(senderKey).orElseThrow(() ->
-                new RuntimeException("[PaymentProcessor] Sender account not found for key: " + senderKey));
+                new AcknowledgeableException("[PaymentProcessor] Sender account not found for key: " + senderKey));
 
         Account receiverAccount = accountRepository.findByKey(receiverKey).orElseThrow(() ->
-                new RuntimeException("[PaymentProcessor] Receiver account not found for key: " + receiverKey));
+                new AcknowledgeableException("[PaymentProcessor] Receiver account not found for key: " + receiverKey));
 
         if (senderAccount.getBalance().compareTo(originalAmount) < 0) {
-            throw new RuntimeException(
+            throw new AcknowledgeableException(
                     String.format("""
                                  [PaymentProcessor] Not enough balance. Tried sending %.2f from account { key: %s, uuid: %s}
                                  to account { key: %s, uuid: %s }, but balance is %.2f
@@ -47,16 +48,17 @@ public class PaymentProcessor {
         LocalDateTime now = LocalDateTime.now();
 
         int debitResult = accountRepository.tryDebitFromBalance(senderKey, originalAmount, now);
-        int creditResult = accountRepository.tryCreditToBalance(receiverKey, convertedAmount, now);
 
         if (debitResult != 1) {
-            throw new RuntimeException(String.format("""
+            throw new AcknowledgeableException(String.format("""
                          [PaymentProcessor] Error debiting %.2f from account { key: %s, uuid: %s}
                     """, originalAmount, senderKey, senderAccount.getUuid()));
         }
 
+        int creditResult = accountRepository.tryCreditToBalance(receiverKey, convertedAmount, now);
+
         if (creditResult != 1) {
-            throw new RuntimeException(String.format("""
+            throw new AcknowledgeableException(String.format("""
                          [PaymentProcessor] Error crediting %.2f into account { key: %s, uuid: %s}
                     """, convertedAmount, receiverKey, receiverAccount.getUuid()));
         }
