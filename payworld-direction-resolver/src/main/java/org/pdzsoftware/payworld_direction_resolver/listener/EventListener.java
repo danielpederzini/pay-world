@@ -17,7 +17,7 @@ public class EventListener {
 
     @KafkaListener(topics = "${app.topic.consume}", containerFactory = "kafkaListenerContainerFactory")
     public void onMessage(RawPaymentDTO message, @Header(KafkaHeaders.RECEIVED_KEY) String key) {
-        log.info("Received message with key: {}", key);
+        log.info("[EventListener] Received message with key: {}", key);
         paymentService.processPayment(message);
     }
 }

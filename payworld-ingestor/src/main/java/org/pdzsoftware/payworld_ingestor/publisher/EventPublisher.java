@@ -1,35 +1,32 @@
 package org.pdzsoftware.payworld_ingestor.publisher;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.pdzsoftware.payworld_ingestor.dto.RawPaymentDTO;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
-
-import java.util.concurrent.CompletableFuture;
+import reactor.core.publisher.Mono;
+import reactor.kafka.sender.KafkaSender;
+import reactor.kafka.sender.SenderRecord;
 
 @Slf4j
 @Service
 public class EventPublisher {
-    private final KafkaTemplate<String, RawPaymentDTO> kafkaTemplate;
+    private final KafkaSender<String, RawPaymentDTO> kafkaSender;
     private final String topic;
 
-    public EventPublisher(KafkaTemplate<String, RawPaymentDTO> kafkaTemplate,
+    public EventPublisher(KafkaSender<String, RawPaymentDTO> kafkaTemplate,
                           @Value("${app.topic.produce}") String topic) {
-        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaSender = kafkaTemplate;
         this.topic = topic;
     }
 
-    public void publish(String key, RawPaymentDTO message) {
-        CompletableFuture<SendResult<String, RawPaymentDTO>> future = kafkaTemplate.send(topic, key, message);
+    public Mono<Void> publish(String key, RawPaymentDTO message) {
+        SenderRecord<String, RawPaymentDTO, String> record =
+                SenderRecord.create(new ProducerRecord<>(topic, key, message), key);
 
-        future.thenAccept(result -> {
-            log.info("[EventPublisher] Sent message with key: {}", key);
-        }).exceptionally(ex -> {
-            String error = "[EventPublisher] Error sending message with key: {}";
-            log.error(error, key, ex);
-            throw new RuntimeException(error, ex);
-        });
+        return kafkaSender.send(Mono.just(record))
+                .doOnError(e -> log.error("[EventPublisher] Error sending message with key: {}", key, e))
+                .then();
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/payments")
@@ -16,8 +17,7 @@ public class PaymentController {
     private final EventPublisher eventPublisher;
 
     @PostMapping
-    public Flux<Void> postPayment(@RequestBody RawPaymentDTO body) {
-        eventPublisher.publish(body.getUuid(), body);
-        return Flux.empty();
+    public Mono<Void> postPayment(@RequestBody RawPaymentDTO body) {
+        return eventPublisher.publish(body.getUuid(), body);
     }
 }
