@@ -25,10 +25,11 @@ public class EventListener {
             paymentProcessor.process(message);
             ack.acknowledge();
         } catch (AcknowledgeableException e) {
-            log.error("[EventListener] Acknowledgeable error processing payment: {}", e.getMessage());
+            log.warn("[EventListener] Acknowledgeable error processing payment: {}", e.getMessage());
             ack.acknowledge();
         } catch (Exception e) {
             log.error("[EventListener] Unexpected error processing payment: {}", e.getMessage());
+            throw e;
         }
     }
 }

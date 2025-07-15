@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -22,7 +21,6 @@ public class EventPublisher {
         this.topic = topic;
     }
 
-    @Transactional("kafkaTransactionManager")
     public void publish(String key, RawPaymentDTO message) {
         CompletableFuture<SendResult<String, RawPaymentDTO>> future = kafkaTemplate.send(topic, key, message);
 
