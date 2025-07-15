@@ -25,9 +25,9 @@ public class EventPublisher {
         CompletableFuture<SendResult<String, RawPaymentDTO>> future = kafkaTemplate.send(topic, key, message);
 
         future.thenAccept(result -> {
-            log.info("Sent message with key: {}", key);
+            log.info("[EventPublisher] Sent message with key: {}", key);
         }).exceptionally(ex -> {
-            String error = "Error sending message with key: {}";
+            String error = "[EventPublisher] Error sending message with key: {}";
             log.error(error, key, ex);
             throw new RuntimeException(error, ex);
         });

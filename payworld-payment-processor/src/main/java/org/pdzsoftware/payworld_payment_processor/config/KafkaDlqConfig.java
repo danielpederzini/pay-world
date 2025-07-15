@@ -1,5 +1,6 @@
 package org.pdzsoftware.payworld_payment_processor.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -8,7 +9,6 @@ import org.pdzsoftware.payworld_payment_processor.exception.AcknowledgeableExcep
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
@@ -20,7 +20,7 @@ import org.springframework.util.backoff.FixedBackOff;
 import java.util.HashMap;
 import java.util.Map;
 
-@EnableKafka
+@Slf4j
 @Configuration
 public class KafkaDlqConfig {
     @Value("${spring.kafka.bootstrap-servers}")
@@ -47,9 +47,10 @@ public class KafkaDlqConfig {
 
     @Bean
     public DeadLetterPublishingRecoverer recoverer(KafkaTemplate<String, EnrichedPaymentDTO> dlqTemplate) {
-        return new DeadLetterPublishingRecoverer(dlqTemplate, (rec, ex) ->
-                new TopicPartition(rec.topic() + ".dlq", rec.partition())
-        );
+        return new DeadLetterPublishingRecoverer(dlqTemplate, (rec, ex) -> {
+            log.error("[DeadLetterPublishingRecoverer] Error handling record with key: {}", rec.key(), ex);
+            return new TopicPartition(rec.topic() + ".dlq", rec.partition());
+        });
     }
 
     @Bean

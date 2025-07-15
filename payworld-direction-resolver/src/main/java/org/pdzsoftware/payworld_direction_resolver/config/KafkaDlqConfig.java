@@ -1,5 +1,6 @@
 package org.pdzsoftware.payworld_direction_resolver.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -18,6 +19,7 @@ import org.springframework.util.backoff.FixedBackOff;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Configuration
 public class KafkaDlqConfig {
     @Value("${spring.kafka.bootstrap-servers}")
@@ -45,9 +47,10 @@ public class KafkaDlqConfig {
     @Bean
     public DeadLetterPublishingRecoverer recoverer(KafkaTemplate<String, RawPaymentDTO> dlqTemplate) {
         return new DeadLetterPublishingRecoverer(
-                dlqTemplate, (rec, ex) ->
-                new TopicPartition(rec.topic() + ".dlq", rec.partition())
-        );
+                dlqTemplate, (rec, ex) -> {
+                    log.error("[DeadLetterPublishingRecoverer] Error handling record with key: {}", rec.key(), ex);
+                    return new TopicPartition(rec.topic() + ".dlq", rec.partition());
+                });
     }
 
     @Bean

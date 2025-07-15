@@ -21,7 +21,15 @@ public class EventPublisher {
         this.topic = topic;
     }
 
-    public CompletableFuture<SendResult<String, EnrichedPaymentDTO>> publish(String key, EnrichedPaymentDTO message) {
-        return kafkaTemplate.send(topic, key, message);
+    public void publish(String key, EnrichedPaymentDTO message) {
+        CompletableFuture<SendResult<String, EnrichedPaymentDTO>> future = kafkaTemplate.send(topic, key, message);
+
+        future.thenAccept(result -> {
+            log.info("[EventPublisher] Sent message with key: {}", key);
+        }).exceptionally(ex -> {
+            String error = "[EventPublisher] Error sending message with key: {}";
+            log.error(error, key, ex);
+            throw new RuntimeException(error, ex);
+        });
     }
 }
