@@ -49,6 +49,11 @@ public class KafkaDlqConfig {
     public DeadLetterPublishingRecoverer recoverer(KafkaTemplate<String, EnrichedPaymentDTO> dlqTemplate) {
         return new DeadLetterPublishingRecoverer(dlqTemplate, (rec, ex) -> {
             log.error("[DeadLetterPublishingRecoverer] Error handling record with key: {}", rec.key(), ex);
+
+            if (ex instanceof AcknowledgeableException) {
+                return null;
+            }
+
             return new TopicPartition(rec.topic() + ".dlq", rec.partition());
         });
     }
