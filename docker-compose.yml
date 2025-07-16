@@ -76,6 +76,7 @@ services:
       - payworld-network
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9093
+      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI}
 
   account-manager:
     build:
@@ -100,9 +101,6 @@ services:
       - payworld-network
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9093
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payworld
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: admin
       PAYWORLD_ACCOUNT_MANAGER_URL: account-manager:8080
 
   payment-processor:

@@ -26,7 +26,12 @@ public class EventPublisher {
                 SenderRecord.create(new ProducerRecord<>(topic, key, message), key);
 
         return kafkaSender.send(Mono.just(record))
-                .doOnError(e -> log.error("[EventPublisher] Error sending message with key: {}", key, e))
-                .then();
+                .doOnNext(result -> {
+                    if (result.exception() == null) {
+                        log.info("[EventPublisher] Sent message with key: {}", key);
+                    } else {
+                        log.error("[EventPublisher] Error sending message for key {}: ", key, result.exception());
+                    }
+                }).then();
     }
 }
