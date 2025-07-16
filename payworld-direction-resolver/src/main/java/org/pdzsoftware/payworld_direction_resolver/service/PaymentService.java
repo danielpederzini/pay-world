@@ -29,21 +29,20 @@ public class PaymentService {
     private final EventPublisher eventPublisher;
 
     public void processPayment(RawPaymentDTO rawPayment) {
-        enrichPayment(rawPayment).ifPresent(enrichedPayment -> {
-            Payment paymentEntity = buildPaymentEntity(enrichedPayment);
+        EnrichedPaymentDTO enrichedPayment = enrichPayment(rawPayment);
+        Payment paymentEntity = buildPaymentEntity(enrichedPayment);
 
-            CompletableFuture<SendResult<String, EnrichedPaymentDTO>> future = eventPublisher
-                    .publish(enrichedPayment.getUuid(), enrichedPayment);
+        CompletableFuture<SendResult<String, EnrichedPaymentDTO>> future = eventPublisher
+                .publish(enrichedPayment.getUuid(), enrichedPayment);
 
-            future.thenAccept(result -> handleSendSuccess(paymentEntity))
-                    .exceptionally(ex -> {
-                        handleSendFailure(ex, paymentEntity);
-                        return null;
-                    });
-        });
+        future.thenAccept(result -> handleSendSuccess(paymentEntity))
+                .exceptionally(ex -> {
+                    handleSendFailure(ex, paymentEntity);
+                    throw new RuntimeException(ex);
+                });
     }
 
-    private Optional<EnrichedPaymentDTO> enrichPayment(RawPaymentDTO rawPayment) {
+    private EnrichedPaymentDTO enrichPayment(RawPaymentDTO rawPayment) {
         try {
             AccountInfoDTO senderInfo = accountClient.getInfoByKey(rawPayment.getSenderKey());
             AccountInfoDTO receiverInfo = accountClient.getInfoByKey(rawPayment.getReceiverKey());
@@ -54,7 +53,7 @@ public class PaymentService {
 
             BigDecimal convertedAmount = rawPayment.getAmount().multiply(conversionRate);
 
-            EnrichedPaymentDTO enrichedPayment = EnrichedPaymentDTO.builder()
+            return EnrichedPaymentDTO.builder()
                     .uuid(rawPayment.getUuid())
                     .senderKey(senderInfo.getKey())
                     .originalCurrency(senderInfo.getCurrency())
@@ -65,11 +64,9 @@ public class PaymentService {
                     .createdAt(rawPayment.getCreatedAt())
                     .convertedAt(LocalDateTime.now())
                     .build();
-
-            return Optional.of(enrichedPayment);
         } catch (Exception e) {
             handleEnrichmentFailure(rawPayment, e);
-            return Optional.empty();
+            throw e;
         }
     }
 
