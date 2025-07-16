@@ -5,7 +5,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.pdzsoftware.payworld_payment_processor.dto.EnrichedPaymentDTO;
-import org.pdzsoftware.payworld_payment_processor.exception.AcknowledgeableException;
+import org.pdzsoftware.payworld_payment_processor.exception.PaymentProcessingException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,24 +48,17 @@ public class KafkaDlqConfig {
     @Bean
     public DeadLetterPublishingRecoverer recoverer(KafkaTemplate<String, EnrichedPaymentDTO> dlqTemplate) {
         return new DeadLetterPublishingRecoverer(dlqTemplate, (rec, ex) -> {
-            if (ex.getCause() instanceof AcknowledgeableException) {
-                log.warn("[DeadLetterPublishingRecoverer] Couldn't complete payment with key: {}, reason: {}",
-                        rec.key(), ex.getCause().getMessage());
-                return null;
-            } else {
-                log.error("[DeadLetterPublishingRecoverer] Error handling record with key: {}",
-                        rec.key(), ex);
-                return new TopicPartition(rec.topic() + ".dlq", rec.partition());
-            }
+            log.error("[DeadLetterPublishingRecoverer] Error handling record with key: {}", rec.key(), ex);
+            return new TopicPartition(rec.topic() + ".dlq", rec.partition());
         });
     }
 
     @Bean
     public DefaultErrorHandler errorHandler(DeadLetterPublishingRecoverer recoverer) {
-        FixedBackOff backOff = new FixedBackOff(1000L, 3);
+        FixedBackOff backOff = new FixedBackOff(100L, 2);
 
         DefaultErrorHandler handler = new DefaultErrorHandler(recoverer, backOff);
-        handler.addNotRetryableExceptions(AcknowledgeableException.class);
+        handler.addNotRetryableExceptions(PaymentProcessingException.class);
         return handler;
     }
 }
