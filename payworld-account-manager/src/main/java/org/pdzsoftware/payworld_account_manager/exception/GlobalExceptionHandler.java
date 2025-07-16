@@ -1,12 +1,14 @@
 package org.pdzsoftware.payworld_account_manager.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.pdzsoftware.payworld_account_manager.exception.custom.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
@@ -17,6 +19,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleOtherErrors(Exception ex, HttpServletRequest request) {
+        log.error("[GlobalExceptionHandler] Handled unexpected exception", ex);
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Something went wrong on the server",
