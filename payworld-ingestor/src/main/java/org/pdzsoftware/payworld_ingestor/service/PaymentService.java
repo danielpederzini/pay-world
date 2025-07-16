@@ -20,7 +20,7 @@ public class PaymentService {
                 .uuid(rawPayment.getUuid())
                 .senderKey(rawPayment.getSenderKey())
                 .receiverKey(rawPayment.getReceiverKey())
-                .amount(rawPayment.getAmount())
+                .originalAmount(rawPayment.getAmount())
                 .status(PaymentStatus.CREATED)
                 .createdAt(rawPayment.getCreatedAt())
                 .updateAt(rawPayment.getCreatedAt())
