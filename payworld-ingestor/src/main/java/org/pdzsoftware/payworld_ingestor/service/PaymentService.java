@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.pdzsoftware.payworld_ingestor.dto.RawPaymentDTO;
 import org.pdzsoftware.payworld_ingestor.entity.Payment;
-import org.pdzsoftware.payworld_ingestor.enums.PaymentStatus;
+import org.pdzsoftware.payworld_ingestor.entity.PaymentStatus;
 import org.pdzsoftware.payworld_ingestor.repository.PaymentRepository;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;

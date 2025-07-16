@@ -1,7 +1,6 @@
 package org.pdzsoftware.payworld_ingestor.entity;
 
 import lombok.*;
-import org.pdzsoftware.payworld_ingestor.enums.PaymentStatus;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
