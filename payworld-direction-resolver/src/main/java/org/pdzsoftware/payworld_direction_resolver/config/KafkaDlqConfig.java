@@ -5,6 +5,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.pdzsoftware.payworld_direction_resolver.dto.RawPaymentDTO;
+import org.pdzsoftware.payworld_direction_resolver.exception.CurrencyNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,6 +50,12 @@ public class KafkaDlqConfig {
         return new DeadLetterPublishingRecoverer(
                 dlqTemplate, (rec, ex) -> {
                     log.error("[DeadLetterPublishingRecoverer] Error handling record with key: {}", rec.key(), ex);
+
+                    // Ignoring DLQ if currency does not exist
+                    if (ex instanceof CurrencyNotFoundException) {
+                        return null;
+                    }
+
                     return new TopicPartition(rec.topic() + ".dlq", rec.partition());
                 });
     }

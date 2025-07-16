@@ -2,6 +2,7 @@ package org.pdzsoftware.payworld_direction_resolver.service;
 
 import lombok.RequiredArgsConstructor;
 import org.pdzsoftware.payworld_direction_resolver.client.DefaultCurrencyClient;
+import org.pdzsoftware.payworld_direction_resolver.exception.CurrencyNotFoundException;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,11 @@ public class CurrencyRatesService {
         String newCurrencyCode = newCurrency.getCurrencyCode().toLowerCase();
 
         Map<String, Object> json = defaultCurrencyClient.getRatesByCurrencyCode(originalCurrencyCode);
+
+        if (!json.containsKey(originalCurrencyCode)) {
+            throw new CurrencyNotFoundException("[CurrencyRatesService] No such currency for code: " + originalCurrencyCode);
+        }
+
         Map<String, Double> rates = (Map<String, Double>) json.get(originalCurrencyCode);
 
         return BigDecimal.valueOf(rates.get(newCurrencyCode));
