@@ -18,7 +18,7 @@ public class Payment {
     private String uuid;
     private String senderKey;
     private String receiverKey;
-    private BigDecimal amount;
+    private BigDecimal originalAmount;
     private PaymentStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updateAt;
@@ -29,8 +29,8 @@ public class Payment {
                 "uuid='" + uuid + '\'' +
                 ", senderKey='" + senderKey + '\'' +
                 ", receiverKey='" + receiverKey + '\'' +
-                ", amount=" + amount +
-                ", paymentStatus=" + status +
+                ", originalAmount=" + originalAmount +
+                ", status=" + status +
                 ", createdAt=" + createdAt +
                 ", updateAt=" + updateAt +
                 '}';
