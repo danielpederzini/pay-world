@@ -19,7 +19,7 @@ public class Payment {
     private String senderKey;
     private String receiverKey;
     private BigDecimal amount;
-    private PaymentStatus paymentStatus;
+    private PaymentStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updateAt;
 
@@ -30,7 +30,7 @@ public class Payment {
                 ", senderKey='" + senderKey + '\'' +
                 ", receiverKey='" + receiverKey + '\'' +
                 ", amount=" + amount +
-                ", paymentStatus=" + paymentStatus +
+                ", paymentStatus=" + status +
                 ", createdAt=" + createdAt +
                 ", updateAt=" + updateAt +
                 '}';

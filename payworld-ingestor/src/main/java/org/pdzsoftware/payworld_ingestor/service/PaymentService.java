@@ -21,7 +21,7 @@ public class PaymentService {
                 .senderKey(rawPayment.getSenderKey())
                 .receiverKey(rawPayment.getReceiverKey())
                 .amount(rawPayment.getAmount())
-                .paymentStatus(PaymentStatus.CREATED)
+                .status(PaymentStatus.CREATED)
                 .createdAt(rawPayment.getCreatedAt())
                 .updateAt(rawPayment.getCreatedAt())
                 .build();
