@@ -16,13 +16,14 @@ else:
 pairs = list(permutations(keys, 2))
 
 for pair in pairs:
-    json = {
-	"uuid": str(uuid.uuid4()),
-        "senderKey": pair[0],
-        "receiverKey": pair[1],
-        "amount": random.uniform(1, 1000),
-        "createdAt": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
-    }
+	for i in range(10):
+	    json = {
+		"uuid": str(uuid.uuid4()),
+	        "senderKey": pair[0],
+	        "receiverKey": pair[1],
+	        "amount": random.uniform(1, 1000),
+	        "createdAt": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
+	    }
 
-    paymentResponse = requests.post(url="http://localhost:8081/api/payments", json=json)
-    print(f"[{paymentResponse.status_code}] {json.get("uuid")}")
+	    paymentResponse = requests.post(url="http://localhost:8081/api/payments", json=json)
+	    print(f"[{paymentResponse.status_code}] {json.get("uuid")}")
