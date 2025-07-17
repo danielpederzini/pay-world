@@ -9,9 +9,9 @@ import org.pdzsoftware.payworld_payment_processor.entity.MongoPayment;
 import org.pdzsoftware.payworld_payment_processor.entity.MongoPaymentStatus;
 import org.pdzsoftware.payworld_payment_processor.entity.Transaction;
 import org.pdzsoftware.payworld_payment_processor.exception.PaymentProcessingException;
-import org.pdzsoftware.payworld_payment_processor.repository.sql.AccountRepository;
+import org.pdzsoftware.payworld_payment_processor.repository.sql.SqlAccountRepository;
 import org.pdzsoftware.payworld_payment_processor.repository.mongo.MongoPaymentRepository;
-import org.pdzsoftware.payworld_payment_processor.repository.sql.TransactionRepository;
+import org.pdzsoftware.payworld_payment_processor.repository.sql.SqlTransactionRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -21,18 +21,18 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
-    private final AccountRepository accountRepository;
-    private final TransactionRepository transactionRepository;
+    private final SqlAccountRepository sqlAccountRepository;
+    private final SqlTransactionRepository sqlTransactionRepository;
     private final MongoPaymentRepository mongoPaymentRepository;
 
     @Transactional(rollbackOn = Exception.class)
     public void processPayment(EnrichedPaymentDTO enrichedPayment) {
         try {
-            Account senderAccount = accountRepository.findByKey(enrichedPayment.getSenderKey()).orElseThrow(() ->
+            Account senderAccount = sqlAccountRepository.findByKey(enrichedPayment.getSenderKey()).orElseThrow(() ->
                     new PaymentProcessingException("[PaymentProcessor] Sender account not found for key: " +
                             enrichedPayment.getSenderKey()));
 
-            Account receiverAccount = accountRepository.findByKey(enrichedPayment.getReceiverKey()).orElseThrow(() ->
+            Account receiverAccount = sqlAccountRepository.findByKey(enrichedPayment.getReceiverKey()).orElseThrow(() ->
                     new PaymentProcessingException("[PaymentProcessor] Receiver account not found for key: " +
                             enrichedPayment.getReceiverKey()));
 
@@ -43,13 +43,17 @@ public class PaymentService {
             tryCrediting(enrichedPayment.getConvertedAmount(), receiverAccount, now);
 
             Transaction transactionEntity = buildTransactionEntity(enrichedPayment, senderAccount, receiverAccount);
-            transactionRepository.save(transactionEntity);
+            sqlTransactionRepository.save(transactionEntity);
+
+            log.info("[PaymentService] Saved transaction to SQL: {}", transactionEntity);
 
             MongoPayment mongoPaymentEntity = buildMongoPaymentEntity(enrichedPayment);
             mongoPaymentEntity.setStatus(MongoPaymentStatus.COMPLETED);
             mongoPaymentEntity.setProcessedAt(now);
             mongoPaymentEntity.setUpdatedAt(now);
             mongoPaymentRepository.save(mongoPaymentEntity);
+
+            log.info("[PaymentService] Updated MongoDB payment: {}", mongoPaymentEntity);
         } catch (Exception e) {
             handleProcessingFailed(enrichedPayment, e);
             throw e;
@@ -67,6 +71,9 @@ public class PaymentService {
         mongoPaymentEntity.setFailureReason(e.getMessage());
         mongoPaymentEntity.setUpdatedAt(LocalDateTime.now());
         mongoPaymentRepository.save(mongoPaymentEntity);
+
+        log.info("[PaymentService] Updated MongoDB payment with failure: {}", mongoPaymentEntity);
+
     }
 
     private void assertSenderHasEnoughBalance(BigDecimal amount, Account senderAccount, Account receiverAccount) {
@@ -81,7 +88,7 @@ public class PaymentService {
     }
 
     private void tryDebiting(BigDecimal amount, Account senderAccount, LocalDateTime now) {
-        int debitResult = accountRepository.tryDebitFromBalance(senderAccount.getKey(), amount, now);
+        int debitResult = sqlAccountRepository.tryDebitFromBalance(senderAccount.getKey(), amount, now);
 
         if (debitResult != 1) {
             throw new PaymentProcessingException(String.format("""
@@ -91,7 +98,7 @@ public class PaymentService {
     }
 
     private void tryCrediting(BigDecimal amount, Account receiverAccount, LocalDateTime now) {
-        int creditResult = accountRepository.tryCreditToBalance(receiverAccount.getKey(), amount, now);
+        int creditResult = sqlAccountRepository.tryCreditToBalance(receiverAccount.getKey(), amount, now);
 
         if (creditResult != 1) {
             throw new PaymentProcessingException(String.format("""

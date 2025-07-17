@@ -3,7 +3,6 @@ package org.pdzsoftware.payworld_direction_resolver.service;
 import lombok.RequiredArgsConstructor;
 import org.pdzsoftware.payworld_direction_resolver.client.DefaultCurrencyClient;
 import org.pdzsoftware.payworld_direction_resolver.exception.CurrencyNotFoundException;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -15,10 +14,13 @@ import java.util.Map;
 public class CurrencyRatesService {
     private final DefaultCurrencyClient defaultCurrencyClient;
 
-    @Cacheable(value = "conversionRates", key = "{#originalCurrency,#newCurrency}")
     public BigDecimal getRateByCurrencyCodes(Currency originalCurrency, Currency newCurrency) {
         String originalCurrencyCode = originalCurrency.getCurrencyCode().toLowerCase();
         String newCurrencyCode = newCurrency.getCurrencyCode().toLowerCase();
+
+        if (originalCurrency.equals(newCurrency)) {
+            return BigDecimal.ONE;
+        }
 
         Map<String, Object> json = defaultCurrencyClient.getRatesByCurrencyCode(originalCurrencyCode);
 
