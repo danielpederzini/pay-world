@@ -6,6 +6,7 @@ from datetime import datetime
 from itertools import permutations
 
 keysResponse = requests.get('http://localhost:8080/api/accounts/keys')
+count = 0
 
 if keysResponse.status_code == 200:
     keys = keysResponse.json()
@@ -26,4 +27,5 @@ for pair in pairs:
 	    }
 
 	    paymentResponse = requests.post(url="http://localhost:8081/api/payments", json=json)
-	    print(f"[{paymentResponse.status_code}] {json.get("uuid")}")
+	    count += 1
+	    print(f"[{count}] [{paymentResponse.status_code}] {json.get("uuid")}")
