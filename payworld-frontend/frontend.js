@@ -263,4 +263,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     addLogEntry('System initialized. Click "Connect" to start receiving payment updates.', 'CREATED');
+
+    connect();
 });
