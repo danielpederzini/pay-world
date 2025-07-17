@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
-public interface AccountRepository extends JpaRepository<Account, String> {
+public interface SqlAccountRepository extends JpaRepository<Account, String> {
     Optional<Account> findByKey(String key);
 
     @Modifying

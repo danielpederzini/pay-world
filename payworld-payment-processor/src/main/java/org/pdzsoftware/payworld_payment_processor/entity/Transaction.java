@@ -30,4 +30,19 @@ public class Transaction {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiver_fk")
     private Account receiverAccount;
+
+    @Override
+    public String toString() {
+        return "Transaction{" +
+                "uuid='" + uuid + '\'' +
+                ", originalAmount=" + originalAmount +
+                ", originalCurrency=" + originalCurrency +
+                ", convertedAmount=" + convertedAmount +
+                ", newCurrency=" + newCurrency +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                ", senderAccount=" + senderAccount +
+                ", receiverAccount=" + receiverAccount +
+                '}';
+    }
 }

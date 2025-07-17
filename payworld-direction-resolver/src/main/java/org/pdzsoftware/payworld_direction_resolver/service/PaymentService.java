@@ -70,13 +70,15 @@ public class PaymentService {
     }
 
     private void handleEnrichmentFailure(RawPaymentDTO rawPayment, Exception e) {
-        log.error("[PaymentService] Error while enriching payment with key: {}, reason: {}",
-                rawPayment.getUuid(), e.getMessage());
+        log.error("[PaymentService] Error while enriching payment: {}, reason: {}",
+                rawPayment, e.getMessage());
 
         Payment paymentEntity = buildPaymentEntity(rawPayment);
         paymentEntity.setStatus(PaymentStatus.FAILED_AT_ENRICHMENT);
         paymentEntity.setFailureReason(e.getMessage());
         paymentRepository.save(paymentEntity);
+
+        log.info("[PaymentService] Updated MongoDB payment with enrichment failure: {}", paymentEntity);
     }
 
     private void handleSendFailure(Throwable ex, Payment paymentEntity) {
@@ -85,6 +87,8 @@ public class PaymentService {
         paymentEntity.setStatus(PaymentStatus.FAILED_AT_PUBLISHING);
         paymentEntity.setFailureReason(ex.getMessage());
         paymentRepository.save(paymentEntity);
+
+        log.info("[PaymentService] Updated MongoDB payment with publishing failure: {}", paymentEntity);
     }
 
     private void handleSendSuccess(Payment paymentEntity) {
@@ -92,6 +96,8 @@ public class PaymentService {
 
         paymentEntity.setStatus(PaymentStatus.ENRICHED);
         paymentRepository.save(paymentEntity);
+
+        log.info("[PaymentService] Updated MongoDB payment: {}", paymentEntity);
     }
 
     private static Payment buildPaymentEntity(EnrichedPaymentDTO enrichedPayment) {

@@ -28,6 +28,6 @@ public class PaymentService {
 
         return paymentRepository.save(paymentEntity)
                 .doOnSuccess(saved -> log.info("[PaymentService] Saved payment to MongoDB: {}", saved))
-                .doOnError(e -> log.error("[PaymentService] Error persisting payment", e));
+                .doOnError(e -> log.error("[PaymentService] Error persisting payment: {}", paymentEntity, e));
     }
 }
