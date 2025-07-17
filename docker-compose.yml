@@ -124,6 +124,8 @@ services:
       context: ./payworld-analytics-api
       dockerfile: Dockerfile
     depends_on: [postgres]
+    ports:
+      - "8084:8084"
     networks: 
       - payworld-network
     environment:
