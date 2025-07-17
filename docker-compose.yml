@@ -118,3 +118,16 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payworld
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: admin
+
+  analytics-api:
+    build:
+      context: ./payworld-analytics-api
+      dockerfile: Dockerfile
+    depends_on: [postgres]
+    networks: 
+      - payworld-network
+    environment:
+      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payworld
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin
