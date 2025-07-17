@@ -55,7 +55,7 @@ public class KafkaDlqConfig {
 
     @Bean
     public DefaultErrorHandler errorHandler(DeadLetterPublishingRecoverer recoverer) {
-        FixedBackOff backOff = new FixedBackOff(100L, 2);
+        FixedBackOff backOff = new FixedBackOff(1L, 2);
         return new DefaultErrorHandler(recoverer, backOff);
     }
 }
