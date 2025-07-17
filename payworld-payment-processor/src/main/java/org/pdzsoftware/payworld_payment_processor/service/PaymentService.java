@@ -60,8 +60,8 @@ public class PaymentService {
         }
     }
 
-    // Starting a new transaction so it does not roll this specific block back
-    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    // Snapping outside the transaction so it does not roll this specific block back
+    @Transactional(Transactional.TxType.NOT_SUPPORTED)
     private void handleProcessingFailed(EnrichedPaymentDTO enrichedPayment, Exception e) {
         log.error("[PaymentService] Error while processing payment with key: {}, reason: {}",
                 enrichedPayment.getUuid(), e.getMessage());
