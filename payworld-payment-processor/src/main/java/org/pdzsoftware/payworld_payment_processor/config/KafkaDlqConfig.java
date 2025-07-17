@@ -5,7 +5,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.pdzsoftware.payworld_payment_processor.dto.EnrichedPaymentDTO;
-import org.pdzsoftware.payworld_payment_processor.exception.PaymentProcessingException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -55,10 +54,7 @@ public class KafkaDlqConfig {
 
     @Bean
     public DefaultErrorHandler errorHandler(DeadLetterPublishingRecoverer recoverer) {
-        FixedBackOff backOff = new FixedBackOff(1L, 2);
-
-        DefaultErrorHandler handler = new DefaultErrorHandler(recoverer, backOff);
-        handler.addNotRetryableExceptions(PaymentProcessingException.class);
-        return handler;
+        FixedBackOff backOff = new FixedBackOff(0L, 0L);
+        return new DefaultErrorHandler(recoverer, backOff);
     }
 }
