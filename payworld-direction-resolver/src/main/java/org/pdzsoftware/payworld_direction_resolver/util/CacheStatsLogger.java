@@ -7,14 +7,16 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 @Slf4j
+@Component
 @RequiredArgsConstructor
 public class CacheStatsLogger {
     public static final String CACHE_NAME = "conversionRates";
     private final CacheManager cacheManager;
 
-    @Scheduled(cron = "0 */10 * * * *")// Every 10 minutes
+    @Scheduled(fixedDelay = 60_000L)// Every min
     private void logCacheStats() {
         Cache springCache = cacheManager.getCache(CACHE_NAME);
 
