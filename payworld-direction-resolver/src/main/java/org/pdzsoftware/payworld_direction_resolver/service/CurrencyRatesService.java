@@ -20,6 +20,10 @@ public class CurrencyRatesService {
         String originalCurrencyCode = originalCurrency.getCurrencyCode().toLowerCase();
         String newCurrencyCode = newCurrency.getCurrencyCode().toLowerCase();
 
+        if (originalCurrency.equals(newCurrency)) {
+            return BigDecimal.ONE;
+        }
+
         Map<String, Object> json = defaultCurrencyClient.getRatesByCurrencyCode(originalCurrencyCode);
 
         if (!json.containsKey(originalCurrencyCode)) {
