@@ -15,7 +15,7 @@ import java.util.Map;
 public class CurrencyRatesService {
     private final DefaultCurrencyClient defaultCurrencyClient;
 
-    @Cacheable(value = "conversionRates", key = "{#originalCurrency,#newCurrency}")
+    @Cacheable(value = "conversionRates", key = "#originalCurrency")
     public BigDecimal getRateByCurrencyCodes(Currency originalCurrency, Currency newCurrency) {
         String originalCurrencyCode = originalCurrency.getCurrencyCode().toLowerCase();
         String newCurrencyCode = newCurrency.getCurrencyCode().toLowerCase();
