@@ -24,6 +24,7 @@
     FAILED_AT_PUBLISHING: "#d500f9",
   };
 
+  const POPULATE_URL = "http://localhost:8084/api/analytics/payments/count";
   const SOCKET_URL = "http://localhost:8084/ws";
   const TOPIC = "/topic/payments";
 
@@ -32,8 +33,23 @@
   let stompClient = null;
 
   onMount(() => {
+    populate();
     connect();
   });
+
+  async function populate() {
+    const response = await fetch(POPULATE_URL);
+    const json = await response.json();
+
+    let total = 0
+
+    json.forEach((element) => {
+      total += element.count
+      paymentStatusCounts[element.status] = element.count
+    });
+
+    totalPayments = total
+  }
 
   function connect() {
     const socket = new SockJS(SOCKET_URL);
