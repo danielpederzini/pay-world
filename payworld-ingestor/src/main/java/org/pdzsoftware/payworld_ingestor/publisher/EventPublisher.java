@@ -25,13 +25,6 @@ public class EventPublisher {
         SenderRecord<String, RawPaymentDTO, String> record =
                 SenderRecord.create(new ProducerRecord<>(topic, key, message), key);
 
-        return kafkaSender.send(Mono.just(record))
-                .doOnNext(result -> {
-                    if (result.exception() == null) {
-                        log.info("[EventPublisher] Sent message with key: {}", key);
-                    } else {
-                        log.error("[EventPublisher] Error sending message for key {}: ", key, result.exception());
-                    }
-                }).then();
+        return kafkaSender.send(Mono.just(record)).then();
     }
 }

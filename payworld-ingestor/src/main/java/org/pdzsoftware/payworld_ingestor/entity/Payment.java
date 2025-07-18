@@ -20,8 +20,9 @@ public class Payment {
     private String receiverKey;
     private BigDecimal originalAmount;
     private PaymentStatus status;
+    private String failureReason;
     private LocalDateTime createdAt;
-    private LocalDateTime updateAt;
+    private LocalDateTime updatedAt;
 
     @Override
     public String toString() {
@@ -31,8 +32,9 @@ public class Payment {
                 ", receiverKey='" + receiverKey + '\'' +
                 ", originalAmount=" + originalAmount +
                 ", status=" + status +
+                ", failureReason='" + failureReason + '\'' +
                 ", createdAt=" + createdAt +
-                ", updateAt=" + updateAt +
+                ", updatedAt=" + updatedAt +
                 '}';
     }
 }
