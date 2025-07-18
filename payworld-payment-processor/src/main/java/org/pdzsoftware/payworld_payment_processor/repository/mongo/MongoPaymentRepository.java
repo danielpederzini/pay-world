@@ -1,6 +1,7 @@
 package org.pdzsoftware.payworld_payment_processor.repository.mongo;
 
 import org.pdzsoftware.payworld_payment_processor.entity.MongoPayment;
+import org.pdzsoftware.payworld_payment_processor.entity.MongoPaymentStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.Update;
@@ -12,20 +13,22 @@ import java.time.LocalDateTime;
 public interface MongoPaymentRepository extends MongoRepository<MongoPayment, String> {
     @Query("{ '_id' : ?0 }")
     @Update("{ '$set' : { " +
-            "'status'      : 'COMPLETED',  " +
-            "'processedAt' : ?1,  " +
-            "'updatedAt'   : ?1   " +
+            "'status'      : ?1,  " +
+            "'processedAt' : ?2,  " +
+            "'updatedAt'   : ?2   " +
             "} }")
-    long markPaymentAsCompleted(String uuid,
+    void markPaymentAsCompleted(String uuid,
+                                MongoPaymentStatus status,
                                 LocalDateTime now);
 
     @Query("{ '_id' : ?0 }")
     @Update("{ '$set' : { " +
-            "'status'        : 'FAILED_AT_PROCESSING',  " +
-            "'failureReason' : ?1,  " +
-            "'updatedAt'     : ?2   " +
+            "'status'        : ?1,  " +
+            "'failureReason' : ?2,  " +
+            "'updatedAt'     : ?3   " +
             "} }")
-    long markPaymentAsFailedProcessing(String uuid,
-                                       String failureReason,
-                                       LocalDateTime now);
+    void markPaymentAsFailed(String uuid,
+                             MongoPaymentStatus status,
+                             String failureReason,
+                             LocalDateTime now);
 }

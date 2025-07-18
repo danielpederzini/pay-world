@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import static org.pdzsoftware.payworld_payment_processor.entity.MongoPaymentStatus.COMPLETED;
+import static org.pdzsoftware.payworld_payment_processor.entity.MongoPaymentStatus.FAILED_AT_PROCESSING;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -26,44 +29,31 @@ public class PaymentService {
     @Transactional(rollbackOn = Exception.class)
     public void processPayment(EnrichedPaymentDTO enrichedPayment) {
         try {
-            Account senderAccount = sqlAccountRepository.findByKey(enrichedPayment.getSenderKey()).orElseThrow(() ->
-                    new PaymentProcessingException("Sender account not found for key: " +
-                            enrichedPayment.getSenderKey()));
-
-            Account receiverAccount = sqlAccountRepository.findByKey(enrichedPayment.getReceiverKey()).orElseThrow(() ->
-                    new PaymentProcessingException("Receiver account not found for key: " +
-                            enrichedPayment.getReceiverKey()));
-
             LocalDateTime now = LocalDateTime.now();
-
-            assertSenderHasEnoughBalance(enrichedPayment.getOriginalAmount(), senderAccount, receiverAccount);
-            tryDebiting(enrichedPayment.getOriginalAmount(), senderAccount, now);
-            tryCrediting(enrichedPayment.getConvertedAmount(), receiverAccount, now);
-
-            Transaction transactionEntity = buildTransactionEntity(enrichedPayment, senderAccount, receiverAccount);
-            sqlTransactionRepository.save(transactionEntity);
-            log.info("[PaymentService] Saved transaction to SQL: {}", transactionEntity);
-
-            mongoPaymentRepository.markPaymentAsCompleted(enrichedPayment.getUuid(), now);
-            log.info("[PaymentService] Marked MongoDB payment with uuid: {} as COMPLETED", enrichedPayment.getUuid());
+            performSqlTransaction(enrichedPayment, now);
+            markMongoPaymentAsCompleted(enrichedPayment, now);
         } catch (Exception e) {
             handleProcessingFailed(enrichedPayment, e);
             throw e;
         }
     }
 
-    // Snapping outside the transaction so it does not roll this specific block back
-    @Transactional(Transactional.TxType.NOT_SUPPORTED)
-    private void handleProcessingFailed(EnrichedPaymentDTO enrichedPayment, Exception e) {
-        log.error("[PaymentService] Error while processing payment with key: {}, reason: {}",
-                enrichedPayment.getUuid(), e.getMessage());
+    private void performSqlTransaction(EnrichedPaymentDTO enrichedPayment, LocalDateTime now) {
+        Account senderAccount = sqlAccountRepository.findByKey(enrichedPayment.getSenderKey()).orElseThrow(() ->
+                new PaymentProcessingException("Sender account not found for key: " +
+                        enrichedPayment.getSenderKey()));
 
-        mongoPaymentRepository.markPaymentAsFailedProcessing(
-                enrichedPayment.getUuid(), e.getMessage(), LocalDateTime.now()
-        );
+        Account receiverAccount = sqlAccountRepository.findByKey(enrichedPayment.getReceiverKey()).orElseThrow(() ->
+                new PaymentProcessingException("Receiver account not found for key: " +
+                        enrichedPayment.getReceiverKey()));
 
-        log.info("[PaymentService] Marked MongoDB payment with uuid: {} as FAILED_AT_PROCESSING",
-                enrichedPayment.getUuid());
+        assertSenderHasEnoughBalance(enrichedPayment.getOriginalAmount(), senderAccount, receiverAccount);
+        tryDebiting(enrichedPayment.getOriginalAmount(), senderAccount, now);
+        tryCrediting(enrichedPayment.getConvertedAmount(), receiverAccount, now);
+
+        Transaction transactionEntity = buildTransactionEntity(enrichedPayment, senderAccount, receiverAccount);
+        sqlTransactionRepository.save(transactionEntity);
+        log.info("[PaymentService] Saved transaction to SQL: {}", transactionEntity);
     }
 
     private void assertSenderHasEnoughBalance(BigDecimal amount, Account senderAccount, Account receiverAccount) {
@@ -111,5 +101,25 @@ public class PaymentService {
                 .senderAccount(senderAccount)
                 .receiverAccount(receiverAccount)
                 .build();
+    }
+
+    private void markMongoPaymentAsCompleted(EnrichedPaymentDTO enrichedPayment, LocalDateTime now) {
+        mongoPaymentRepository.markPaymentAsCompleted(enrichedPayment.getUuid(), COMPLETED, now);
+        log.info("[PaymentService] Marked processed payment with uuid: {} as COMPLETED in MongoDB",
+                enrichedPayment.getUuid());
+    }
+
+    // Snapping outside the transaction so it does not roll this specific block back
+    @Transactional(Transactional.TxType.NOT_SUPPORTED)
+    private void handleProcessingFailed(EnrichedPaymentDTO enrichedPayment, Exception e) {
+        log.error("[PaymentService] Error while processing payment with uuid: {}, reason: {}",
+                enrichedPayment.getUuid(), e.getMessage());
+
+        mongoPaymentRepository.markPaymentAsFailed(
+                enrichedPayment.getUuid(), FAILED_AT_PROCESSING, e.getMessage(), LocalDateTime.now()
+        );
+
+        log.info("[PaymentService] Marked failed payment with uuid: {} as FAILED_AT_PROCESSING in MongoDB",
+                enrichedPayment.getUuid());
     }
 }
