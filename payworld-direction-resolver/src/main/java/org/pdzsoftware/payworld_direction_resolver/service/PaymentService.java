@@ -6,8 +6,6 @@ import org.pdzsoftware.payworld_direction_resolver.client.AccountClient;
 import org.pdzsoftware.payworld_direction_resolver.dto.AccountInfoDTO;
 import org.pdzsoftware.payworld_direction_resolver.dto.EnrichedPaymentDTO;
 import org.pdzsoftware.payworld_direction_resolver.dto.RawPaymentDTO;
-import org.pdzsoftware.payworld_direction_resolver.entity.Payment;
-import org.pdzsoftware.payworld_direction_resolver.entity.PaymentStatus;
 import org.pdzsoftware.payworld_direction_resolver.publisher.EventPublisher;
 import org.pdzsoftware.payworld_direction_resolver.repository.PaymentRepository;
 import org.springframework.kafka.support.SendResult;
@@ -16,6 +14,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
+
+import static org.pdzsoftware.payworld_direction_resolver.entity.PaymentStatus.*;
 
 @Slf4j
 @Service
@@ -29,16 +29,8 @@ public class PaymentService {
 
     public void processPayment(RawPaymentDTO rawPayment) {
         EnrichedPaymentDTO enrichedPayment = enrichPayment(rawPayment);
-        Payment paymentEntity = buildPaymentEntity(enrichedPayment);
-
-        CompletableFuture<SendResult<String, EnrichedPaymentDTO>> future = eventPublisher
-                .publish(enrichedPayment.getUuid(), enrichedPayment);
-
-        future.thenAccept(result -> handleSendSuccess(paymentEntity))
-                .exceptionally(ex -> {
-                    handleSendFailure(ex, paymentEntity);
-                    throw new RuntimeException(ex);
-                });
+        markMongoPaymentAsEnriched(enrichedPayment);
+        trySendingPaymentToKafka(enrichedPayment);
     }
 
     private EnrichedPaymentDTO enrichPayment(RawPaymentDTO rawPayment) {
@@ -70,58 +62,54 @@ public class PaymentService {
     }
 
     private void handleEnrichmentFailure(RawPaymentDTO rawPayment, Exception e) {
-        log.error("[PaymentService] Error while enriching payment: {}, reason: {}",
-                rawPayment, e.getMessage());
+        log.error("[PaymentService] Error while enriching payment with uuid: {}, reason: {}",
+                rawPayment.getUuid(), e.getMessage());
 
-        Payment paymentEntity = buildPaymentEntity(rawPayment);
-        paymentEntity.setStatus(PaymentStatus.FAILED_AT_ENRICHMENT);
-        paymentEntity.setFailureReason(e.getMessage());
-        paymentRepository.save(paymentEntity);
+        paymentRepository.markPaymentAsFailed(
+                rawPayment.getUuid(), FAILED_AT_ENRICHMENT, e.getMessage(), LocalDateTime.now()
+        );
 
-        log.info("[PaymentService] Updated MongoDB payment with enrichment failure: {}", paymentEntity);
+        log.info("[PaymentService] Marked failed payment with uuid: {} as FAILED_AT_ENRICHMENT in MongoDB",
+                rawPayment.getUuid());
     }
 
-    private void handleSendFailure(Throwable ex, Payment paymentEntity) {
-        log.error("[EventPublisher] Error sending message with key: {}", paymentEntity.getUuid(), ex);
+    private void markMongoPaymentAsEnriched(EnrichedPaymentDTO enrichedPayment) {
+        paymentRepository.markPaymentAsEnriched(
+                enrichedPayment.getUuid(), ENRICHED,
+                enrichedPayment.getSenderKey(),
+                enrichedPayment.getReceiverKey(),
+                enrichedPayment.getOriginalCurrency(),
+                enrichedPayment.getNewCurrency(),
+                enrichedPayment.getOriginalAmount(),
+                enrichedPayment.getConvertedAmount(),
+                enrichedPayment.getConvertedAt()
+        );
 
-        paymentEntity.setStatus(PaymentStatus.FAILED_AT_PUBLISHING);
-        paymentEntity.setFailureReason(ex.getMessage());
-        paymentRepository.save(paymentEntity);
-
-        log.info("[PaymentService] Updated MongoDB payment with publishing failure: {}", paymentEntity);
+        log.info("[PaymentService] Updated enriched payment with uuid: {} as ENRICHED in MongoDB",
+                enrichedPayment.getUuid());
     }
 
-    private void handleSendSuccess(Payment paymentEntity) {
-        log.info("[EventPublisher] Sent message with key: {}", paymentEntity.getUuid());
+    private void trySendingPaymentToKafka(EnrichedPaymentDTO enrichedPayment) {
+        CompletableFuture<SendResult<String, EnrichedPaymentDTO>> future = eventPublisher
+                .publish(enrichedPayment.getUuid(), enrichedPayment);
 
-        paymentEntity.setStatus(PaymentStatus.ENRICHED);
-        paymentRepository.save(paymentEntity);
-
-        log.info("[PaymentService] Updated MongoDB payment: {}", paymentEntity);
+        future.thenAccept(result -> {
+            log.info("[EventPublisher] Sent message with key: {}", enrichedPayment.getUuid());
+        }).exceptionally(ex -> {
+            handleSendFailure(enrichedPayment, ex);
+            throw new RuntimeException(ex);
+        });
     }
 
-    private static Payment buildPaymentEntity(EnrichedPaymentDTO enrichedPayment) {
-        return Payment.builder()
-                .uuid(enrichedPayment.getUuid())
-                .senderKey(enrichedPayment.getSenderKey())
-                .receiverKey(enrichedPayment.getReceiverKey())
-                .originalCurrency(enrichedPayment.getOriginalCurrency())
-                .newCurrency(enrichedPayment.getNewCurrency())
-                .originalAmount(enrichedPayment.getOriginalAmount())
-                .convertedAmount(enrichedPayment.getConvertedAmount())
-                .createdAt(enrichedPayment.getCreatedAt())
-                .updatedAt(enrichedPayment.getConvertedAt())
-                .convertedAt(enrichedPayment.getConvertedAt())
-                .build();
-    }
+    private void handleSendFailure(EnrichedPaymentDTO enrichedPayment, Throwable e) {
+        log.error("[EventPublisher] Error sending message with key: {}, reason: {}",
+                enrichedPayment.getUuid(), e.getMessage());
 
-    private static Payment buildPaymentEntity(RawPaymentDTO rawPaymentDTO) {
-        return Payment.builder()
-                .uuid(rawPaymentDTO.getUuid())
-                .senderKey(rawPaymentDTO.getSenderKey())
-                .receiverKey(rawPaymentDTO.getReceiverKey())
-                .createdAt(rawPaymentDTO.getCreatedAt())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        paymentRepository.markPaymentAsFailed(
+                enrichedPayment.getUuid(), FAILED_AT_PUBLISHING, e.getMessage(), LocalDateTime.now()
+        );
+
+        log.info("[PaymentService] Marked failed payment with uuid: {} as FAILED_AT_PUBLISHING in MongoDB",
+                enrichedPayment.getUuid());
     }
 }
