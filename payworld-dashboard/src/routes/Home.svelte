@@ -7,6 +7,6 @@
 
 <ul>
   <li><a href="#/real-time-payments">Real Time Payments</a></li>
-  <li><a href="#/account-view">Account View</a></li>
+  <li><a href="#/account-overview">Account Overview</a></li>
   <li><a href="#/payment-details">Payment Details</a></li>
 </ul>

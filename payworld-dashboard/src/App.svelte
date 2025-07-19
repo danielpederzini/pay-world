@@ -2,13 +2,13 @@
   import Router from 'svelte-spa-router';
   import Home   from './routes/Home.svelte';
   import RealTimePayments  from './routes/RealTimePayments.svelte';
-  import AccountView  from './routes/AccountView.svelte';
+  import AccountOverview  from './routes/AccountOverview.svelte';
   import PaymentDetails  from './routes/PaymentDetails.svelte';
 
   const routes = {
     '/':      Home,
     '/real-time-payments': RealTimePayments,
-    '/account-view': AccountView,
+    '/account-overview': AccountOverview,
     '/payment-details': PaymentDetails,
     '*':      Home,  // fallback
   };
@@ -17,7 +17,7 @@
 <nav>
   <a href="#/">Home</a>
   <a href="#/real-time-payments">Real Time Payments</a>
-  <a href="#/account-view">Account View</a>
+  <a href="#/account-overview">Account Overview</a>
   <a href="#/payment-details">Payment Details</a>
 </nav>
 
